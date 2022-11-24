@@ -105,6 +105,12 @@ doc$lvl2.varname %>% unique()
 # get the parenting variables from all three waves
 doc<-read_xlsx("LSAC Documentation/full_documentation_with_selection_v3.xlsx")
 
+#replace mum with mom for consistency
+doc[grep(".mum", doc$lvl1.varname),]$lvl1.varname<-gsub("mum", "mom",doc[grep(".mum", doc$lvl1.varname),]$lvl1.varname)
+#check
+doc[grep(".mom", doc$lvl1.varname),]$lvl1.varname
+
+
 parenting.vars<-grep("parenting",doc$lvl1.varname, value=TRUE) %>%  unique() 
 
 parenting.df<-data.frame(Variable.Name = doc[grep("parenting",doc$lvl1.varname), ]$`Variable Name`,
@@ -136,6 +142,17 @@ for(i in 1:length(parenting.vars)){
   }
   
 }
+
+parenting.df<-parenting.df %>% 
+  arrange(lvl1.varname)
+
+present.parenting.df<-data.frame(k12 = parenting.df$lvl1.varname,
+                                 k14 = ifelse(parenting.df$k14!="none", parenting.df$lvl1.varname, "none"),
+                                 k16 =ifelse(parenting.df$k16!="none", parenting.df$lvl1.varname, "none")
+                                   ) %>% 
+  unique() %>% 
+  arrange(desc(k16),desc(k14))
+
 
 
 #fill in the documentation file such that for each parenting variable there is a k12, k14 and k16 lvl1.varname (if existing)
