@@ -26,12 +26,12 @@ sublab<-function(data, #a dataframe to be subsetted
 # Load data & documentation ------------------
 #load the imputed dataset
 #load(file="C:/Users/3384022/Desktop/AL/Data to use/imputed.data.RData")
-load(file="C:/Users/3384022/Desktop/AL/Data to use/revision/imputed.data.RData")
+load(file="C:/Users/3384022/Desktop/AL/Data to use/revision/imputed.data_v3.RData")
 
 #load hte documentation with the selected variables
 #selected_variables<-read_xlsx("Anita/LSAC documentation/selected_variables2.xlsx")
 #final_selection<-read_xlsx("Anita/LSAC documentation/final_selection.xlsx")
-final_selection<-read_xlsx("Anita/LSAC documentation/revision/selected_variables1.xlsx")
+final_selection<-read_xlsx("LSAC documentation/selected_variables1_v3.xlsx")
 #categorical CFA (i.e. ordered=TRUE) on dichotomous items is equivalent to logistic model =>  use ordered CFA for all scales
 final_selection[final_selection$method=="log.model" & !is.na(final_selection$method),]$method<-"CFA"
 
@@ -349,7 +349,7 @@ cfa.scores<-cfa.scores[,!colnames(cfa.scores) %in% remove.latent.scores]
 predictor.scores<-merge(cfa.scores, efa.scores, by="ID")
   
 save(cfa.scores, fit, fit.cfa, poor.fit, good.fit, file = "Anita/Outputs/CFA predictor models & fit.RData")
-save(cfa.scores, file = "Anita/Outputs/CFA predictors latent scores.RData")
+save(cfa.scores, file = "Outputs/CFA predictors latent scores_v3.RData")
 
 save(predictor.scores, file = "Anita/Outputs/LSACcreatingScales_revision/predictor.scores.RData")
 
@@ -364,7 +364,7 @@ write_xlsx(fit.efa, path = "Anita/Outputs/LSACcreatingScales_revision/fit.efa.xl
 
 
 wave.names<-wave.names<-paste0("k", c(12,14,16))
-resp.names<-c("p1", "p2", "sc")
+resp.names<-c("mom", "dad", "sc")
 
 
 # the following for loop builds different parts of the cfa models as strings
@@ -381,6 +381,7 @@ free.latent.means<-c()
 mod1.lvl2<-c() #the part of the model that relates the latent variables of each respondent to a 2nd order latent variable
 k=1
 
+i<-wave.names[3]
 for(i in wave.names){ #for each wave name k12, k14 or k16
   #subset the data such that includes only the SDQ emotional problems scale for wave i
   df.i <- sublab(data=imp, labels=grep(paste0(i, ".SDQ.emot."), attr(imp,"variable.labels"), value = TRUE))
@@ -407,7 +408,7 @@ for(i in wave.names){ #for each wave name k12, k14 or k16
     
   }
   
-  mod1.lvl2<-c(mod1.lvl2,paste0(i,".F =~ ", i, ".f.p1 + ", i,".f.p2 + ", i,".f.sc"))
+  mod1.lvl2<-c(mod1.lvl2,paste0(i,".F =~ ", i, ".f.mom + ", i,".f.dad + ", i,".f.sc"))
   
   #for each respondent p1, p2 or sc...
   for(j in resp.names){ 
@@ -445,12 +446,12 @@ for(i in wave.names){ #for each wave name k12, k14 or k16
 }
 corrs.within<-unique(corrs.within)
 
-guttman$k12$p1$lambda.2
-guttman$k12$p2$lambda.2
+guttman$k12$mom$lambda.2
+guttman$k12$dad$lambda.2
 guttman$k12$sc$lambda.2
 
-guttman$k14$p1$lambda.2
-guttman$k14$p2$lambda.2
+guttman$k14$mom$lambda.2
+guttman$k14$dad$lambda.2
 guttman$k14$sc$lambda.2
 
 guttman$k16$p1$lambda.2
@@ -487,19 +488,25 @@ summary(conf,fit.measures=TRUE,standardized=TRUE)
 mod1.metric<-mod1
 
 #the three loops fix the factor loadings
-#get the index positions of the two-empty-space placeholders for fixing the factor loadings
+#get the index positions of the two-empty-space placeholders before each item for fixing the factor loadings
 positions<-gregexpr("  ", mod1.metric)[[1]][1:5]
 #fix the factor loadings per item to be the same across waves for each respondent
-for (i in c(1,4,7)) { #for parent 1 in each wave
-  #for each item -> set a letter
+for (i in c(1,4,7)) { #for parent 1 in each wave (mom)
+  #for each item -> set a letter[j] (i.e., j is the number of a letter in the alphabet)
   for(j in 1:5) substr(mod1.metric[i],positions[j],positions[j]+1)<-paste0(letters[j], "*")
 }
 for (i in c(2,5,8)) { #for parent 2 in each wave
-  for(j in 6:10) substr(mod1.metric[i],positions[j-5],positions[j-5]+1)<-paste0(letters[j], "*")
+  for(j in 6:10) substr(mod1.metric[i],positions[j-5],positions[j-5]+1)<-paste0(letters[j], "*") #positions[j-5] assures that olazs positions [1:5] are looped over 
 }
 for (i in c(3,6,9)) { #for study child in each wave
-  for(j in 11:15) substr(mod1.metric[i],positions[j-10],positions[j-10]+1)<-paste0(letters[j], "*")
+  for(j in 11:15) substr(mod1.metric[i],positions[j-10]-1,positions[j-10])<-paste0(letters[j], "*")
 }
+
+# for (i in c(3,6,9)) { #for study child in each wave
+#   for(j in 11:15) substr(mod1.metric[i],positions[j-10],positions[j-10]+1)<-paste0(letters[j], "*")
+# }
+
+
 
 
 model1.metric<-c(mod1.metric, corrs.within) #corrs.between,
@@ -586,18 +593,18 @@ model2.metric<-c(mod1.metric, corrs.within, mod1.lvl2)#corrs.between,
 
 metric2<-cfa(model=model2.metric,imp,std.lv=TRUE, ordered=TRUE) 
 summary(metric2,fit.measures=TRUE, standardized=TRUE)
-
-metric2DWLS<-cfa(model=model2.metric,imp,std.lv=TRUE, ordered=TRUE, estimator="DWLS") 
-summary(metric2DWLS,fit.measures=TRUE, standardized=TRUE)
+# 
+# metric2DWLS<-cfa(model=model2.metric,imp,std.lv=TRUE, ordered=TRUE, estimator="DWLS") 
+# summary(metric2DWLS,fit.measures=TRUE, standardized=TRUE)
 
 
 measurement.inv2[2,c("CFI", "RMSEA", "SRMR", "Chi.sq", "df")]<-fitmeasures(metric2)[c("cfi", "rmsea", "srmr", "chisq", "df")] %>% round(digits=3)
 
 #highly significant -- but the model fit is similar
-anova(metric2DWLSord, conf2DWLSord)
+anova(metric2, conf2)
 
 #plot factor loadings per respondent per wave
-df_plot <- parameterestimates(conf2DWLSord,  standardized = TRUE)
+df_plot <- parameterestimates(conf2,  standardized = TRUE)
 #subset only factor loadings;ie. parameters with lhs=factor and rhs=observed variables
 df_plot <- df_plot[df_plot$lhs %in% df_plot$lhs[substr(df_plot$lhs,1,1)=="k"] & 
                      df_plot$rhs %in% df_plot$rhs[substr(df_plot$rhs,1,1)!="k"] &
@@ -631,7 +638,8 @@ measurement.inv2[3,c("CFI", "RMSEA", "SRMR", "Chi.sq", "df")]<-fitmeasures(scala
 
 anova(scalar2, metric2)
 
-# fits well!
+#The scalar model fits well
+measurement.inv2
 
 #### Scores -------------------
 #note: takes about 15 min to run

@@ -10,7 +10,7 @@ library(writexl)
 # DOCUMENTATION WRANGLING  -----------------------------------------------------------------
 #load the full LSAC documentation file containing the selected variables
 #doc<-read_xlsx("Anita/LSAC documentation/full_documentation_with_selection.xlsx")
-doc<-read_xlsx("Anita/LSAC documentation/revision/full_documentation_with_selection_adj.xlsx")
+doc<-read_xlsx("LSAC Documentation/full_documentation_with_selection_v3.xlsx")
 
 #filter the full documentation such that it only contains selected variables
 selected_variables<-subset(doc, !is.na(lvl1.varname))
@@ -70,15 +70,16 @@ lsac<-merge(lsac1214, lsac16, by = "hicid",all.x = TRUE, all.y = TRUE)
 ## variable order ------------------------------------------------------
 
 # For the DV sort the column names such that they follow the pattern
-# wave (k12, k14, k16) - respondent (parent1 parent2 study child) - question (1 to 5)
+# wave (k12, k14, k16) - respondent (parent1 parent2/mom dad study child) - question (1 to 5)
 #so 1) sort according to the last character of the variable name (indicator of the question)
 # and 2) sort according to the 6th chatacter which is an indicator of the respondent
+
 SDQ.emot<-lapply(X=list(k12=k12.SDQ.emot,
                         k14=k14.SDQ.emot,
                         k16=k16.SDQ.emot),
                  FUN = function(X){
                     X<-X[order(substr(X, 8,8))]
-                    X<-X[order(substr(X, 6,6))]
+                    X<-X[order(factor(substr(X, 6,6) , levels = c("m", "f", "c")))]
             })
 
 #concantenate all variables of the dataset with the SDQ.emot variables at the end
@@ -125,8 +126,8 @@ miss_col <- colSums(miss)/nrow(miss)
 hist(miss_row, 100)
 hist(miss_col, 100)
 #columns or rows that have proportion of missingnes larger than 60%
-sum(miss_col>0.6) #70
-sum(miss_row>0.6) #164
+sum(miss_col>0.6) #57
+sum(miss_row>0.6) #163
 
 removed.vars.missings<-selected_variables[selected_variables$Variable.Name %in% labels(which(miss_col>0.6)),]
 removed.vars.missings$exclusion.reason<-"missing > .60"
@@ -139,7 +140,7 @@ lsac <- lsac[, -which(miss_col > .6)]
 #write_xlsx(final_selection ,"Anita/LSAC documentation/final_selection.xlsx")
 
 selected_variables1 <- selected_variables[selected_variables$Variable.Name %in% colnames(lsac),]
-write_xlsx(selected_variables1 ,"Anita/LSAC documentation/revision/selected_variables1.xlsx")
+write_xlsx(selected_variables1 ,"LSAC documentation/selected_variables1_v3.xlsx")
 
 ## Imputation ---------------------------------------------------------------------
 
@@ -156,16 +157,17 @@ write_xlsx(selected_variables1 ,"Anita/LSAC documentation/revision/selected_vari
 # nrow = 3884
 # ncol = 834
 set.seed(123)
-imp<-missRanger(lsac, pmm.k=10, num.trees=100, maxiter=10)
+imp<-missRanger(lsac, pmm.k=10, num.trees=2, maxiter=1)
 
 anyNA(imp)
 
 #check order of the variable names -- correct
 sum(colnames(imp) == selected_variables1$Variable.Name)
+
 #add labels to the imputed dataset
 #a vector with variable lables of the variables in the imp dataset
 attr(imp, "variable.labels")<-selected_variables1$lvl1.varname
 
 
 #save(imp, file="C:/Users/3384022/Desktop/AL/Data to use/imputed.data.RData")
-save(imp, file="C:/Users/3384022/Desktop/AL/Data to use/revision/imputed.data.RData")
+save(imp, file="C:/Users/3384022/Desktop/AL/Data to use/revision/imputed.data_v3.RData")
