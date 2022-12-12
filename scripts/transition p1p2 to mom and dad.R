@@ -34,12 +34,12 @@ for(i in 1:nrow(parents.vars)){
   
   if(any(mo.fa.vars$`Person Label` %in% c("Mother@12/13", "Mother", "Father@12/13", "Father")&
          substr(mo.fa.vars$`Variable Name`,1,1)==substr(parents.vars$Variable.Name[i],1,1))){
-    parents.vars[i,4:5]<-mo.fa.vars[mo.fa.vars$`Person Label` %in% c("Mother@12/13", "Mother", "Father@12/13", "Father") &
+    parents.vars[i,5:6]<-mo.fa.vars[mo.fa.vars$`Person Label` %in% c("Mother@12/13", "Mother", "Father@12/13", "Father") &
                                       substr(mo.fa.vars$`Variable Name`,1,1)==substr(parents.vars$Variable.Name[i],1,1)
                                       ,]$`Variable Name`
   #if there are no corresponding mom/dad variables => fill in "none"
   }else{
-    parents.vars[i,4:5]<-"none"
+    parents.vars[i,5:6]<-"none"
     
   }
 
@@ -66,6 +66,10 @@ for(i in 1:nrow(parents.vars.sub)){
   doc[doc$`Variable Name` %in% parents.vars.sub$fa.varname[i],]$Note<-parents.vars.sub$Note[i]
   
 }
+
+#remove item pa18f3 from wave 12 from the parenting moinotring scale because the item is not included in subsequent waves
+doc[doc$`Without age`=="pa18f3",]$lvl1.varname<-NA
+doc[doc$`Without age`=="pa18m3",]$lvl1.varname<-NA
 
 #remove lvl2.varname for p1/p2 variables
 doc[unique(c(grep(".p1", doc$lvl1.varname),grep(".p2", doc$lvl1.varname))),]$lvl2.varname<-NA
@@ -101,6 +105,8 @@ doc[c(10954,13814),]$lvl1.varname<-NA
 doc$lvl2.varname %>% unique()
 
 
+write_xlsx(doc, "LSAC Documentation/full_documentation_with_selection_v3.xlsx")
+
 
 # get the parenting variables from all three waves
 doc<-read_xlsx("LSAC Documentation/full_documentation_with_selection_v3.xlsx")
@@ -109,6 +115,8 @@ doc<-read_xlsx("LSAC Documentation/full_documentation_with_selection_v3.xlsx")
 doc[grep(".mum", doc$lvl1.varname),]$lvl1.varname<-gsub("mum", "mom",doc[grep(".mum", doc$lvl1.varname),]$lvl1.varname)
 #check
 doc[grep(".mom", doc$lvl1.varname),]$lvl1.varname
+write_xlsx(doc, "LSAC Documentation/full_documentation_with_selection_v3.xlsx")
+
 
 
 parenting.vars<-grep("parenting",doc$lvl1.varname, value=TRUE) %>%  unique() 
@@ -119,6 +127,8 @@ parenting.df<-data.frame(Variable.Name = doc[grep("parenting",doc$lvl1.varname),
                          k16=NA
                          )
 
+
+i<-25
 #obtain the Variable.Name of parenting variables for wave k14 and k16
 for(i in 1:length(parenting.vars)){
   #for each variable get the Variable Name without wave indicator
@@ -177,8 +187,6 @@ present.parenting.df<-data.frame(k12 = parenting.df$lvl1.varname,
 
 
 
-
-write_xlsx(doc, "LSAC Documentation/full_documentation_with_selection_v3.xlsx")
 
 
 
